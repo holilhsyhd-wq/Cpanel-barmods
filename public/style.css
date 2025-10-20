@@ -1,291 +1,170 @@
-/* --- Global & Body --- */
+/* Animasi Bintang */
+@keyframes animateStars {
+    from { transform: translateY(0px); }
+    to { transform: translateY(-2000px); }
+}
+
+.stars, .stars2, .stars3 {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+@function multiple-box-shadow($n) {
+    $value: '#{random(2000)}px #{random(2000)}px #FFF';
+    @for $i from 2 through $n {
+        $value: '#{$value} , #{random(2000)}px #{random(2000)}px #FFF';
+    }
+    @return unquote($value);
+}
+
+.stars {
+    width: 1px;
+    height: 1px;
+    background: transparent;
+    box-shadow: multiple-box-shadow(700);
+    animation: animateStars 50s linear infinite;
+}
+.stars2 {
+    width: 2px;
+    height: 2px;
+    background: transparent;
+    box-shadow: multiple-box-shadow(200);
+    animation: animateStars 100s linear infinite;
+}
+.stars3 {
+    width: 3px;
+    height: 3px;
+    background: transparent;
+    box-shadow: multiple-box-shadow(100);
+    animation: animateStars 150s linear infinite;
+}
+
+/* Tema Gelap */
 body {
-    font-family: 'Poppins', sans-serif;
-    background-color: #0c0a1e; /* Warna dasar ungu/biru tua */
-    color: #ffffff;
+    font-family: Arial, sans-serif;
+    background-color: #000;
+    color: #fff;
     margin: 0;
-    padding: 0;
+    padding: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    overflow-x: hidden; /* Mencegah horizontal scroll */
+    overflow: hidden; 
 }
-
-/* --- Efek Background Bintang --- */
-@keyframes move-twink-back {
-    from {background-position: 0 0;}
-    to {background-position: -10000px 5000px;}
-}
-
-.stars, .twinkling {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-    z-index: -2;
-}
-
-.stars {
-    background: #000 url(https://www.script-tutorials.com/demos/360/images/stars.png) repeat top center;
-}
-
-.twinkling {
-    background: transparent url(https://www.script-tutorials.com/demos/360/images/twinkling.png) repeat top center;
-    animation: move-twink-back 200s linear infinite;
-    z-index: -1;
-}
-
-/* --- Jam Realtime --- */
-#realtime-clock {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(5px);
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-size: 1.2em;
-    font-weight: 600;
-    letter-spacing: 2px;
-    z-index: 100;
-}
-
-/* --- Kontainer Form Utama --- */
 .container {
-    background-color: rgba(26, 22, 51, 0.85); /* Warna kontainer sedikit transparan */
-    backdrop-filter: blur(10px);
-    padding: 2.5rem;
-    border-radius: 20px;
-    box-shadow: 0 8px 32px 0 rgba(11, 8, 29, 0.37);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    width: 90%;
-    max-width: 500px;
-    text-align: center;
-    z-index: 10;
-}
-
-.container h2 {
-    margin-top: 0;
-    font-weight: 700;
-    font-size: 1.8em;
-    color: #f0f0f0;
-    white-space: pre-line; /* Agar "BY TEAM ZEROIX" pindah baris */
-}
-
-/* --- Styling Form --- */
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem; /* Jarak antar elemen form */
-    text-align: left;
-}
-
-form label {
-    font-weight: 600;
-    font-size: 0.9em;
-    color: #ccc;
-    margin-bottom: -10px; /* Label lebih dekat ke input */
-}
-
-/* Styling Input Teks, Password, dan Select */
-input[type="text"],
-input[type="password"],
-select {
-    width: 100%;
-    padding: 12px 15px;
+    background-color: rgba(20, 20, 25, 0.9);
     border: 1px solid #444;
-    background-color: #1a1633;
+    padding: 2em;
     border-radius: 8px;
-    color: #ffffff;
-    font-family: 'Poppins', sans-serif;
-    font-size: 1em;
-    box-sizing: border-box; /* Penting untuk padding */
-    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 500px;
+    z-index: 1;
 }
-
-input[type="text"]:focus,
-input[type="password"]:focus,
-select:focus {
-    background-color: #2a244f;
-    border-color: #7b61ff;
-    box-shadow: 0 0 10px rgba(123, 97, 255, 0.5);
-    outline: none;
-}
-
-select {
-    appearance: none; /* Menghilangkan style default select */
-    background-image: url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-    background-repeat: no-repeat;
-    background-position: right 15px center;
-}
-
-select option[disabled] {
-    color: #888;
-}
-
-/* --- Opsi Radio Button (Private/Public) --- */
-.server-type-options {
-    display: flex;
-    justify-content: space-around;
-    background-color: #1a1633;
-    border-radius: 8px;
-    padding: 5px;
-}
-
-.server-type-options input[type="radio"] {
-    display: none; /* Sembunyikan radio button asli */
-}
-
-.server-type-options label {
-    flex: 1; /* Lebar sama rata */
-    padding: 10px;
+h1 {
     text-align: center;
-    margin: 0;
+    color: #fff;
+    margin-bottom: 1.5em;
+    font-size: 1.5em;
+}
+.form-group {
+    margin-bottom: 1.5em;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 0.5em;
     color: #ccc;
-    font-weight: 600;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    font-weight: bold;
 }
-
-/* Efek saat radio dipilih */
-.server-type-options input[type="radio"]:checked + label {
-    background-color: #7b61ff;
-    color: #ffffff;
-    box-shadow: 0 0 10px rgba(123, 97, 255, 0.7);
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    box-sizing: border-box; 
+    background-color: #333;
+    color: #fff;
 }
-
-/* --- Tombol Submit --- */
-button[type="submit"] {
-    background: linear-gradient(90deg, #8a2be2, #4a00e0);
+button {
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff;
     color: white;
-    padding: 14px;
     border: none;
-    border-radius: 8px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 1.1em;
-    font-weight: 700;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 1rem;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
 }
+button:hover { background-color: #0056b3; }
+button:disabled { background-color: #555; cursor: not-allowed; }
 
-button[type="submit"]:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(74, 0, 224, 0.4);
-}
-
-button[type="submit"]:disabled {
-    background: #555;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
-
-/* --- Hasil / Result Box --- */
 #result {
-    margin-top: 1.5rem;
-    padding: 15px;
-    border-radius: 8px;
-    word-wrap: break-word; /* Mencegah teks panjang merusak layout */
-    text-align: left;
+    margin-top: 2em;
+    padding: 1em;
+    border-radius: 4px;
+    display: none; 
     line-height: 1.6;
 }
-
-/* Info (Loading) */
-#result.info {
-    background-color: rgba(50, 150, 255, 0.2);
-    border: 1px solid #3296ff;
-    color: #d4eaff;
-}
-
-/* Success */
 #result.success {
-    background-color: rgba(0, 255, 127, 0.2);
-    border: 1px solid #00ff7f;
-    color: #e0fff0;
+    background-color: #1a3a24;
+    border: 1px solid #2a613f;
+    color: #9fefc0;
+    display: block;
 }
-#result.success h4 {
-    margin-top: 0;
-    color: #00ff7f;
-}
-#result.success p {
-    margin: 5px 0;
-}
-#result.success hr {
-    border: none;
-    height: 1px;
-    background-color: rgba(0, 255, 127, 0.3);
-    margin: 10px 0;
-}
-#result.success strong {
-    color: #f0f0f0;
-}
-
-/* Error */
 #result.error {
-    background-color: rgba(255, 87, 87, 0.2);
-    border: 1px solid #ff5757;
-    color: #ffeaea;
+    background-color: #4d1c1c;
+    border: 1px solid #8f3434;
+    color: #ffc4c4;
+    display: block;
+}
+#result pre {
+    background-color: #111;
+    padding: 1em;
+    border-radius: 4px;
+    white-space: pre-wrap; 
+    word-wrap: break-word;
+    font-family: monospace;
+    color: #eee;
+    border: 1px solid #444;
 }
 
-/* --- Tombol WhatsApp Melayang --- */
-.whatsapp-fab {
-    position: fixed;
-    bottom: 25px;
-    left: 25px;
-    width: 60px;
-    height: 60px;
-    background-color: #25D366;
-    color: white;
-    border-radius: 50%;
+/* Tombol Tipe Server */
+.server-type-selector {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 2.5em; /* Ukuran ikon */
-    text-decoration: none;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    z-index: 100;
-    transition: all 0.3s ease;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #555;
+}
+.server-type-selector input[type="radio"] { display: none; }
+.server-type-selector label {
+    flex: 1;
+    text-align: center;
+    padding: 12px;
+    cursor: pointer;
+    background-color: #333;
+    color: #aaa;
+    margin: 0;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.server-type-selector input[type="radio"]:checked + label {
+    background-color: #007bff;
+    color: #fff;
+    font-weight: bold;
 }
 
-.whatsapp-fab:hover {
-    transform: scale(1.1) translateY(-5px);
-    box-shadow: 0 8px 25px rgba(37, 211, 102, 0.5);
-}
-
-/* --- Responsive (Mobile) --- */
-@media (max-width: 600px) {
-    body {
-        padding: 1rem;
-        align-items: flex-start;
-        min-height: 100svh; /* svh lebih baik untuk mobile */
-    }
-
-    .container {
-        padding: 1.5rem;
-        width: 100%;
-    }
-
-    .container h2 {
-        font-size: 1.5em;
-    }
-
-    #realtime-clock {
-        position: static;
-        margin-bottom: 1rem;
-        text-align: center;
-    }
-
-    .whatsapp-fab {
-        bottom: 15px;
-        left: 15px;
-        width: 50px;
-        height: 50px;
-        font-size: 2em;
-    }
+/* Subtitle */
+.form-group label .subtitle {
+    font-size: 0.8em;
+    font-weight: normal;
+    color: #999;
+    font-style: italic;
+    margin-left: 8px;
 }

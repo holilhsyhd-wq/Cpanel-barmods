@@ -1,222 +1,197 @@
-// Muat variabel .env
-require('dotenv').config();
+// api/create.js
 
-const axios = require('axios');
+const fetch = require('node-fetch');
+// Impor config non-rahasia
+const config = require('../config'); 
 
-// --- Ambil KEDUA set kredensial panel ---
-const PTERO_PANEL_URL_PRIVATE = process.env.PTERO_PANEL_URL_PRIVATE;
-const PTERO_API_KEY_PRIVATE = process.env.PTERO_API_KEY_PRIVATE;
-const PTERO_PANEL_URL_PUBLIC = process.env.PTERO_PANEL_URL_PUBLIC;
-const PTERO_API_KEY_PUBLIC = process.env.PTERO_API_KEY_PUBLIC;
+// ==================================================================
+// == FUNGSI API PTERODACTYL (Helper Functions) ==
+// ==================================================================
 
-// --- Ambil KEDUA secret key ---
-const MY_MEMBER_SECRET_KEY = process.env.MY_MEMBER_SECRET_KEY;
-const PUBLIC_MEMBER_SECRET_KEY = process.env.PUBLIC_MEMBER_SECRET_KEY;
-
-// Konfigurasi server default (diambil dari .env)
-const DEFAULT_LOCATION_ID = parseInt(process.env.DEFAULT_LOCATION_ID);
-const DEFAULT_NEST_ID = parseInt(process.env.DEFAULT_NEST_ID);
-const DEFAULT_EGG_ID = parseInt(process.env.DEFAULT_EGG_ID);
-
-// --- Fungsi Helper (sekarang menerima panelUrl dan apiKey) ---
-
-function generatePassword(length = 10) {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    let password = '';
-    for (let i = 0; i < length; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
-}
-
-/**
- * Fungsi membuat user (sekarang dinamis)
- * @param {string} panelUrl - URL panel target
- * @param {string} apiKey - API Key panel target
- */
-async function createUser(serverName, panelUrl, apiKey) {
-    const username = serverName.toLowerCase().replace(/[^a-z0-9]/g, '') + `_${Math.random().toString(36).substring(2, 6)}`;
-    const email = `${username}@yourdomain.com`; // Ganti @yourdomain.com jika perlu
-    const password = generatePassword(12);
+// Fungsi ini tidak berubah, hanya parameter 'domain' dan 'apiKey'
+// sekarang datang dari variabel yang aman.
+async function createUser(serverName, apiKey, domain) {
+    const url = `${domain}/api/application/users`;
+    
+    const randomString = Math.random().toString(36).substring(7);
+    const email = `${serverName.toLowerCase().replace(/\s+/g, '')}@${randomString}.com`;
+    const username = `${serverName.toLowerCase().replace(/\s+/g, '')}_${randomString}`;
+    const password = Math.random().toString(36).slice(-10);
 
     const userData = {
         email: email,
         username: username,
-        first_name: "User",
-        last_name: serverName,
+        first_name: serverName,
+        last_name: "User",
         password: password,
-    };
-    
-    // Buat header dinamis
-    const headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        root_admin: false
     };
 
     try {
-        const response = await axios.post(
-            `${panelUrl}/api/application/users`, // URL dinamis
-            userData,
-            { headers: headers }
-        );
-        return { ...response.data.attributes, password: password };
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`, 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(userData)
+        });
+        const data = await response.json();
+        if (response.status === 201) {
+            return { success: true, user: data.attributes, password: password };
+        } else {
+            console.error("Gagal membuat user:", JSON.stringify(data.errors, null, 2));
+            return { success: false, error: data.errors ? data.errors[0].detail : 'Gagal membuat pengguna baru.' };
+        }
     } catch (error) {
-        console.error("Gagal membuat user:", error.response ? error.response.data : error.message);
-        throw new Error("Gagal membuat user di panel.");
+        console.error("Error saat fetch API user:", error);
+        return { success: false, error: 'Gagal terhubung ke API Pterodactyl untuk membuat pengguna.' };
     }
 }
 
-/**
- * Fungsi membuat server (sekarang dinamis)
- * @param {string} panelUrl - URL panel target
- * @param {string} apiKey - API Key panel target
- */
-async function createServer(user, serverName, ram, panelUrl, apiKey) {
+async function createServer(serverName, memory, pterodactylUserId, apiKey, domain) {
+    // Gunakan config non-rahasia dari file config.js
+    const pterodactyl = config.pterodactyl;
+    const url = `${domain}/api/application/servers`;
+
     const serverData = {
         name: serverName,
-        user: user.id,
-        nest: DEFAULT_NEST_ID,
-        egg: DEFAULT_EGG_ID,
-        docker_image: "ghcr.io/pterodactyl/yolks:nodejs_18", // Sesuaikan jika perlu
-        startup: "node index.js", // Sesuaikan jika perlu
-        environment: {},
+        user: pterodactylUserId,
+        egg: pterodactyl.eggId,
+        docker_image: "ghcr.io/parkervcp/yolks:nodejs_18",
+        startup: "if [[ -d .git ]]; then git pull; fi; if [[ ! -z ${NODE_PACKAGES} ]]; then /usr/local/bin/npm install ${NODE_PACKAGES}; fi; if [[ -f /home/container/package.json ]]; then /usr/local/bin/npm install; fi; {{CMD_RUN}}",
+        environment: {
+            USER_ID: pterodactylUserId, 
+            CMD_RUN: "node index.js" 
+        },
         limits: {
-            memory: parseInt(ram),
+            memory: parseInt(memory),
             swap: 0,
-            disk: (parseInt(ram) > 0) ? parseInt(ram) * 3 : 5120, // Contoh: Disk 3x RAM, atau 5GB jika unlimited
+            disk: pterodactyl.disk,
             io: 500,
-            cpu: (parseInt(ram) > 0) ? parseInt(ram) / 1024 * 100 : 400, // Contoh: 100% CPU per 1GB RAM
+            cpu: pterodactyl.cpu,
         },
         feature_limits: { databases: 1, allocations: 1, backups: 1 },
         deploy: {
-            locations: [DEFAULT_LOCATION_ID],
+            locations: [pterodactyl.locationId],
             dedicated_ip: false,
-            port_range: [],
+            port_range: []
         }
-    };
-
-    // Buat header dinamis
-    const headers = {
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
     };
 
     try {
-        const response = await axios.post(
-            `${panelUrl}/api/application/servers`, // URL dinamis
-            serverData,
-            { headers: headers }
-        );
-        return response.data.attributes;
-    } catch (error) {
-        console.error("Gagal membuat server:", error.response ? error.response.data.errors : error.message);
-        if (error.response && error.response.data.errors) {
-            const errorMsg = error.response.data.errors.map(e => e.detail).join(' ');
-            throw new Error(`Gagal membuat server: ${errorMsg}`);
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(serverData)
+        });
+        const data = await response.json();
+        if (response.status === 201) {
+            return { success: true, data: data.attributes };
+        } else {
+            console.error("Error Pterodactyl API Server:", JSON.stringify(data.errors, null, 2));
+            return { success: false, error: data.errors ? data.errors[0].detail : 'Gagal membuat server.' };
         }
-        throw new Error("Gagal membuat server di panel.");
+    } catch (error) {
+        console.error("Error saat fetch API Server:", error);
+        return { success: false, error: 'Gagal terhubung ke Pterodactyl API untuk membuat server.' };
     }
 }
 
-// --- Handler Utama Serverless Function ---
-// 
-// PERUBAHAN UTAMA DI SINI:
-// Mengganti 'export default async function handler(req, res)'
-// Menjadi 'module.exports = async (req, res) =>'
-//
+// ==================================================================
+// == FUNGSI UTAMA (Handler Vercel) ==
+// ==================================================================
+// Ini adalah fungsi utama yang akan dijalankan Vercel
 module.exports = async (req, res) => {
-
-    // Setel Header CORS (Wajib untuk Vercel)
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    // Ganti '*' dengan domain Vercel Anda setelah deploy untuk keamanan lebih
-    res.setHeader('Access-Control-Allow-Origin', '*'); 
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    // Tangani request OPTIONS (pre-flight)
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    // Hanya izinkan metode POST
+    // 1. Hanya izinkan metode POST
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Metode tidak diizinkan' });
+        return res.status(405).json({ error: 'Metode tidak diizinkan.' });
     }
-
-    // Ambil data dari body (sekarang 'panelType')
-    const { serverName, ram, secretKey, panelType } = req.body;
-
-    // Variabel untuk menyimpan kredensial panel yang akan digunakan
-    let targetPanelUrl = '';
-    let targetApiKey = '';
 
     try {
-        // Validasi input
-        if (!serverName || !ram || !secretKey || !panelType) {
-            return res.status(400).json({ error: 'Data tidak lengkap: Nama Server, RAM, Secret Key, dan Tipe Panel wajib diisi.' });
+        // 2. Ambil data dari body request
+        const { serverName, ram, secretKey, serverType } = req.body;
+
+        // 3. Validasi Input
+        if (!serverName || !ram || !secretKey || !serverType) {
+            return res.status(400).json({ error: 'Semua field (Nama Server, RAM, Tipe Server, Secret Key) wajib diisi.' });
         }
 
-        // --- LOGIKA UTAMA ---
-        // Tentukan panel mana yang akan digunakan berdasarkan 'panelType'
+        // 4. Otorisasi dan pemilihan config (MEMBACA DARI 'process.env')
+        let authorized = false;
+        let selectedPterodactylApiKey = null;
+        let selectedDomain = null;
+
+        // Ambil data rahasia dari Vercel Environment Variables
+        const secretKeyPublic = process.env.SECRET_KEY_PUBLIC;
+        const secretKeyPrivate = process.env.SECRET_KEY_PRIVATE;
+        const pteroApiKeyPublic = process.env.PTERO_API_KEY_PUBLIC;
+        const pteroApiKeyPrivate = process.env.PTERO_API_KEY_PRIVATE;
+        const pteroDomainPublic = process.env.PTERO_DOMAIN_PUBLIC;
+        const pteroDomainPrivate = process.env.PTERO_DOMAIN_PRIVATE;
+
+        if (serverType === 'public' && secretKey === secretKeyPublic) {
+            authorized = true;
+            selectedPterodactylApiKey = pteroApiKeyPublic;
+            selectedDomain = pteroDomainPublic;
+        } else if (serverType === 'private' && secretKey === secretKeyPrivate) {
+            authorized = true;
+            selectedPterodactylApiKey = pteroApiKeyPrivate;
+            selectedDomain = pteroDomainPrivate;
+        }
+
+        if (!authorized) {
+            return res.status(401).json({ error: 'Secret Key salah atau tidak cocok dengan Tipe Server.' });
+        }
         
-        if (panelType === 'private') {
-            // 1. Validasi Secret Key untuk Private
-            if (secretKey !== MY_MEMBER_SECRET_KEY) {
-                return res.status(403).json({ error: 'Secret Key untuk Panel Private salah.' });
-            }
-            // 2. Set kredensial ke panel PRIVATE
-            targetPanelUrl = PTERO_PANEL_URL_PRIVATE;
-            targetApiKey = PTERO_API_KEY_PRIVATE;
-
-        } else if (panelType === 'public') {
-            // 1. Validasi Secret Key untuk Public
-            if (secretKey !== PUBLIC_MEMBER_SECRET_KEY) {
-                return res.status(403).json({ error: 'Secret Key untuk Panel Public salah.' });
-            }
-            // 2. Set kredensial ke panel PUBLIC
-            targetPanelUrl = PTERO_PANEL_URL_PUBLIC;
-            targetApiKey = PTERO_API_KEY_PUBLIC;
-            
-            // 3. (Opsional) Batasi RAM untuk panel public
-            if (parseInt(ram) > 4096 && parseInt(ram) !== 0) { // Contoh: Maks 4GB
-                 return res.status(400).json({ error: 'Panel Public tidak bisa lebih dari 4GB RAM.' });
-            }
-        } else {
-            return res.status(400).json({ error: 'Tipe panel tidak dikenal.' });
+        if (!selectedPterodactylApiKey || !selectedDomain) {
+            console.error(`Otorisasi berhasil untuk ${serverType}, tapi Environment Variables tidak diatur di Vercel.`);
+            return res.status(500).json({ error: 'Konfigurasi server bermasalah (Environment Variables tidak lengkap).' });
         }
 
-        // Cek jika kredensial panel ada
-        if (!targetPanelUrl || !targetApiKey) {
-            console.error("Kesalahan Konfigurasi: URL atau API Key panel tidak diatur di .env");
-            return res.status(500).json({ error: 'Kesalahan konfigurasi server.' });
-        }
+        console.log(`Menerima permintaan (Tipe: ${serverType}): Nama=${serverName}, RAM=${ram}`);
 
-        // --- Proses Pembuatan ---
-        const newUser = await createUser(serverName, targetPanelUrl, targetApiKey);
-        const newServer = await createServer(newUser, serverName, ram, targetPanelUrl, targetApiKey);
+        // 5. Proses Pembuatan
+        const userResult = await createUser(serverName, selectedPterodactylApiKey, selectedDomain);
+        if (!userResult.success) {
+            return res.status(500).json({ error: `Gagal Membuat Akun Panel: ${userResult.error}` });
+        }
         
-        // Kirim Respon Sukses
-        return res.status(201).json({
-            message: 'Server dan User berhasil dibuat!',
-            panelURL: targetPanelUrl, // Kirim URL panel yang benar
-            user: {
-                id: newUser.id,
+        const newUser = userResult.user;
+        const newUserPassword = userResult.password;
+        console.log(`Berhasil membuat user: ${newUser.username}`);
+
+        const serverResult = await createServer(serverName, ram, newUser.id, selectedPterodactylApiKey, selectedDomain);
+        if (!serverResult.success) {
+            return res.status(500).json({ error: `Gagal Membuat Server: ${serverResult.error}` });
+        }
+        
+        const serverInfo = serverResult.data;
+        console.log(`Berhasil membuat server: ${serverInfo.name}`);
+
+        // 6. Kirim respon sukses
+        res.status(200).json({
+            success: true,
+            message: "Semua Berhasil Disiapkan!",
+            panelUrl: selectedDomain,
+            loginDetails: {
                 username: newUser.username,
                 email: newUser.email,
+                password: newUserPassword
             },
-            password: newUser.password,
-            server: {
-                id: newServer.id,
-                uuid: newServer.uuid,
-                name: newServer.name,
-                limits: newServer.limits
+            serverDetails: {
+                name: serverInfo.name,
+                ram: serverInfo.limits.memory
             }
         });
 
     } catch (error) {
-        // Tangani Error
-        return res.status(500).json({ error: error.message || 'Terjadi kesalahan internal server.' });
+        console.error("Kesalahan internal:", error);
+        res.status(500).json({ error: 'Terjadi kesalahan internal pada server.' });
     }
-}
+};

@@ -121,7 +121,12 @@ async function createServer(user, serverName, ram, panelUrl, apiKey) {
 }
 
 // --- Handler Utama Serverless Function ---
-export default async function handler(req, res) {
+// 
+// PERUBAHAN UTAMA DI SINI:
+// Mengganti 'export default async function handler(req, res)'
+// Menjadi 'module.exports = async (req, res) =>'
+//
+module.exports = async (req, res) => {
 
     // Setel Header CORS (Wajib untuk Vercel)
     res.setHeader('Access-Control-Allow-Credentials', true);

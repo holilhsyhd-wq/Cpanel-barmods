@@ -1,136 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pterodactyl Server Creator</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
+    <title>Buat Server Pterodactyl</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="stars"></div>
-    <div class="twinkling"></div>
-    
-    <div id="realtime-clock">
-        <span id="clock-time">00:00:00</span>
-    </div>
+    <div class="stars2"></div>
+    <div class="stars3"></div>
 
     <div class="container">
-        <h2>CREATE PANEL
-        BY TEAM ZEROIX</h2>
-        <form id="createServerForm">
-            
-            <label>Pilih Tipe Panel:</label>
-            <div class="server-type-options">
-                <input type="radio" id="type_private" name="panelType" value="private" required>
-                <label for="type_private">Private</label>
-                
-                <input type="radio" id="type_public" name="panelType" value="public">
-                <label for="type_public">Public</label>
+        <h1>CREATE PANEL BY TEAM ZEROIX</h1>
+        
+        <form id="create-form">
+            <div class="form-group">
+                <label>Tipe Server:</label>
+                <div class="server-type-selector">
+                    <input type="radio" id="type-private" name="serverType" value="private" checked>
+                    <label for="type-private">Private</label>
+                    
+                    <input type="radio" id="type-public" name="serverType" value="public">
+                    <label for="type-public">Public</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="serverName">Nama Server:</label>
+                <input type="text" id="serverName" name="serverName" placeholder="Contoh: MyNodeApp" required>
             </div>
             
-            <label for="serverName">Nama Server:</label>
-            <input type="text" id="serverName" name="serverName" placeholder="Contoh: MyNodeApp" required>
+            <div class="form-group">
+                <label for="ram">Pilih RAM:</label>
+                <select id="ram" name="ram" required>
+                    <option value="" disabled selected>-- Pilih Ukuran RAM --</option>
+                    <option value="1024">1 GB (1024 MB)</option>
+                    <option value="2048">2 GB (2048 MB)</option>
+                    <option value="3072">3 GB (3072 MB)</option>
+                    <option value="4096">4 GB (4096 MB)</option>
+                    <option value="5120">5 GB (5120 MB)</option>
+                    <option value="6144">6 GB (6144 MB)</option>
+                    <option value="7192">7 GB (7192 MB)</option>
+                    <option value="8192">8 GB (8192 MB)</option>
+                    <option value="0">Unlimited</option>
+                </select>
+            </div>
 
-            <label for="ram">Pilih RAM:</label>
-            <select id="ram" name="ram" required>
-                <option value="" disabled selected>-- Pilih Ukuran RAM --</option>
-                <option value="1024">1 GB</option>
-                <option value="2048">2 GB</option>
-                <option value="3072">3 GB</option>
-                <option value="4096">4 GB</option>
-                <option value="5120">5 GB</option>
-                <option value="6144">6 GB</option>
-                <option value="7192">7 GB</option>
-                <option value="8192">8 GB</option>
-                <option value="9216">9 GB</option>
-                <option value="0">Unlimited</option>
-            </select>
-
-            <div>
-                <label for="secretKey">SECRET KEY?:</label>
+            <div class="form-group">
+                <label for="secretKey">SECRET KEY?: <span class="subtitle">khusus member zeroix</span></label>
                 <input type="password" id="secretKey" name="secretKey" placeholder="Masukkan Secret Key Anda" required>
             </div>
             
-            <button type="submit" id="submitButton">Buat Server</button>
+            <button type="submit" id="submit-btn">Buat Server</button>
         </form>
         
         <div id="result"></div>
     </div>
 
-    <a href="https://wa.me/6283877842721" class="whatsapp-fab" target="_blank" title="Contact Admin / Order">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-
-    <script>
-        document.getElementById('createServerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const form = e.target;
-            const resultDiv = document.getElementById('result');
-            const submitButton = document.getElementById('submitButton');
-
-            const serverName = form.serverName.value;
-            const ram = form.ram.value;
-            const secretKey = form.secretKey.value;
-            
-            // Mengirim 'panelType'
-            const panelType = form.panelType.value; 
-
-            resultDiv.className = 'info';
-            resultDiv.innerText = '⏳ Sedang memproses... Mohon tunggu...';
-            submitButton.disabled = true;
-            
-            try {
-                // URL fetch bersifat relatif, Vercel akan otomatis mengarahkannya
-                const response = await fetch('/api/create', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    // Mengirim 'panelType'
-                    body: JSON.stringify({ serverName, ram, secretKey, panelType }) 
-                });
-                
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Terjadi kesalahan');
-                
-                resultDiv.className = 'success';
-                resultDiv.innerHTML = `
-                    <h4>✅ Semua Berhasil Disiapkan!</h4>
-                    <p><strong>URL Panel:</strong> ${data.panelURL}</p><hr>
-                    <p><strong>Username:</strong> ${data.user.username}</p>
-                    <p><strong>Email:</strong> ${data.user.email}</p>
-                    <p><strong>Password:</strong> ${data.password}</p><hr>
-                    <p><strong>Nama Server:</strong> ${data.server.name}</p>
-                    <p><strong>RAM:</strong> ${data.server.limits.memory} MB</p>
-                `;
-                form.reset();
-                form.ram.value = ""; 
-            } catch (error) {
-                resultDiv.className = 'error';
-                resultDiv.innerText = `❌ Gagal: ${error.message}`;
-            } finally {
-                submitButton.disabled = false;
-            }
-        });
-    </script>
-
-    <script>
-        function updateClock() {
-            const clockElement = document.getElementById('clock-time');
-            if (clockElement) {
-                const now = new Date();
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const seconds = String(now.getSeconds()).padStart(2, '0');
-                clockElement.textContent = `${hours}:${minutes}:${seconds}`;
-            }
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
